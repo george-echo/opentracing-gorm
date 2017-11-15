@@ -62,6 +62,7 @@ func (c *callbacks) before(scope *gorm.Scope) {
 	parentSpan := val.(opentracing.Span)
 	tr := parentSpan.Tracer()
 	sp := tr.StartSpan("sql", opentracing.ChildOf(parentSpan.Context()))
+	sp.LogEvent("SQL Started w/id: " + scope.InstanceID())
 	ext.DBType.Set(sp, "sql")
 	scope.Set(spanGormKey, sp)
 }
