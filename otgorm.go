@@ -59,35 +59,31 @@ func (c *callbacks) before(scope *gorm.Scope) {
 	if !ok {
 		return
 	}
-	if strings.TrimSpace(scope.SQL) == "" {
-		return
-	}
 	parentSpan := val.(opentracing.Span)
 	tr := parentSpan.Tracer()
 	sp := tr.StartSpan("sql", opentracing.ChildOf(parentSpan.Context()))
-	sp.LogEvent("SQL Started w/id: " + scope.InstanceID())
 	ext.DBType.Set(sp, "sql")
 	scope.Set(spanGormKey, sp)
 }
 
 func (c *callbacks) after(scope *gorm.Scope, operation string) {
-	if scope.HasError() {
+	val, ok := scope.Get(spanGormKey)
+	if !ok {
 		return
 	}
 	if strings.TrimSpace(scope.SQL) == "" {
-		return
-	}
-	val, ok := scope.Get(spanGormKey)
-	if !ok {
 		return
 	}
 	sp := val.(opentracing.Span)
 	if operation == "" {
 		operation = strings.ToUpper(strings.Split(scope.SQL, " ")[0])
 	}
+	ext.Error.Set(sp, scope.HasError())
 	ext.DBStatement.Set(sp, scope.SQL)
 	sp.SetTag("db.table", scope.TableName())
 	sp.SetTag("db.method", operation)
+	sp.SetTag("db.err", scope.HasError())
+	sp.SetTag("db.count", scope.DB().RowsAffected)
 	sp.Finish()
 }
 
