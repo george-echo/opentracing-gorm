@@ -59,6 +59,9 @@ func (c *callbacks) before(scope *gorm.Scope) {
 	if !ok {
 		return
 	}
+	if strings.TrimSpace(scope.SQL) == "" {
+		return
+	}
 	parentSpan := val.(opentracing.Span)
 	tr := parentSpan.Tracer()
 	sp := tr.StartSpan("sql", opentracing.ChildOf(parentSpan.Context()))
@@ -69,6 +72,9 @@ func (c *callbacks) before(scope *gorm.Scope) {
 
 func (c *callbacks) after(scope *gorm.Scope, operation string) {
 	if scope.HasError() {
+		return
+	}
+	if strings.TrimSpace(scope.SQL) == "" {
 		return
 	}
 	val, ok := scope.Get(spanGormKey)
